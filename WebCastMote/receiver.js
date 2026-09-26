@@ -7,6 +7,8 @@
 
     const context = cast.framework.CastReceiverContext.getInstance();
     const playerManager = context.getPlayerManager();
+    const video = document.getElementById('cast-video');
+    playerManager.setMediaElement(video);
 
     const showReceiverMessage = (title, detail) => {
         document.getElementById('receiver-message-title').textContent = title;
@@ -31,6 +33,25 @@
             console.warn('[WebCastMote] Unable to send diagnostics', error);
         }
     };
+
+    const mediaElementDetails = () => ({
+        currentTime: Number.isFinite(video.currentTime) ? video.currentTime : null,
+        duration: Number.isFinite(video.duration) ? video.duration : null,
+        readyState: video.readyState,
+        networkState: video.networkState,
+        paused: video.paused,
+        videoWidth: video.videoWidth,
+        videoHeight: video.videoHeight,
+        errorCode: video.error?.code ?? null,
+        errorMessage: video.error?.message ?? null,
+    });
+
+    ['loadedmetadata', 'loadeddata', 'canplay', 'playing', 'waiting', 'stalled', 'error']
+        .forEach((eventName) => {
+            video.addEventListener(eventName, () => {
+                broadcastDiagnostic(`MEDIA_ELEMENT_${eventName.toUpperCase()}`, mediaElementDetails());
+            });
+        });
 
     playerManager.setMessageInterceptor(
         cast.framework.messages.MessageType.LOAD,
@@ -187,7 +208,7 @@
     options.customNamespaces = {
         [DIAGNOSTICS_NAMESPACE]: cast.framework.system.MessageType.JSON,
     };
-    options.versionCode = 9;
+    options.versionCode = 10;
 
     context.start(options);
 })();
