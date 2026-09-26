@@ -92,7 +92,7 @@
                 url,
                 contentType: media.contentType || null,
                 streamType: media.streamType || null,
-                playbackEngine: isMpegTsHls ? 'native-hls-mpegts' : looksLikeHls ? 'native-hls' : 'caf-default',
+                playbackEngine: isMpegTsHls ? 'shaka-hls-mpegts' : looksLikeHls ? 'shaka-hls' : 'caf-default',
             });
             return request;
         },
@@ -131,14 +131,26 @@
 
     const options = new cast.framework.CastReceiverOptions();
     options.statusText = 'Ready to cast';
-    // Older Chromecast models can play MPEG-TS HLS through CAF's native player
-    // even when Shaka/MSE rejects the same stream with CONTENT_UNSUPPORTED_BY_BROWSER (4032).
-    options.useShakaForHls = false;
+    // Use Shaka (MSE) for HLS instead of the native player.
+    // The native CAF player silently drops video frames for MPEG-TS streams
+    // with non-16-aligned widths (e.g. 1936px) due to a chroma siting issue
+    // in the Chromecast compositor — audio plays but video is black.
+    // Shaka demuxes MPEG-TS correctly and feeds clean frames to the video
+    // element, which resolves audio-only playback on those streams.
+    options.useShakaForHls = true;
+    // Allow Shaka to transmux MPEG-TS segments into fMP4 (MP4/MSE) so it
+    // does not reject streams it cannot play natively in the browser.
+    options.shakaConfiguration = {
+        streaming: {
+            // Force mp2t transmuxing; Shaka will convert TS → fMP4 on the fly.
+            forceTransmux: true,
+        },
+    };
     options.playbackConfig = playbackConfig;
     options.customNamespaces = {
         [DIAGNOSTICS_NAMESPACE]: cast.framework.system.MessageType.JSON,
     };
-    options.versionCode = 4;
+    options.versionCode = 5;
 
     context.start(options);
 })();
