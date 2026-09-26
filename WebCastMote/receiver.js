@@ -137,29 +137,9 @@
         },
     );
 
-    // PLAYER_LOAD_BEGIN fires right before Shaka starts loading content.
-    // Use it as a belt-and-suspenders place to apply forceTransmux directly
-    // on the Shaka instance in case shakaConfiguration is silently ignored.
-    playerManager.addEventListener(
-        cast.framework.events.EventType.PLAYER_LOAD_BEGIN,
-        () => {
-            try {
-                // cast.player is the underlying Shaka player in CAF.
-                const shaka = cast.player && cast.player.api
-                    ? cast.player.api.getPlayer()
-                    : null;
-                if (shaka && typeof shaka.configure === 'function') {
-                    shaka.configure('streaming.forceTransmux', true);
-                    broadcastDiagnostic('SHAKA_CONFIGURED', { forceTransmux: true });
-                } else {
-                    broadcastDiagnostic('SHAKA_CONFIGURE_SKIPPED',
-                        { reason: 'no Shaka instance found via cast.player.api' });
-                }
-            } catch (e) {
-                broadcastDiagnostic('SHAKA_CONFIGURE_FAILED', { error: String(e) });
-            }
-        },
-    );
+    // PLAYER_LOAD_BEGIN is not a real CAF EventType — removed.
+    // shakaConfiguration below is the documented way to reach Shaka's config.
+
 
     const playbackConfig = new cast.framework.PlaybackConfig();
     playbackConfig.autoResumeNumberOfSegments = 1;
@@ -185,7 +165,6 @@
     options.useShakaForHls = true;
     // Allow Shaka to transmux MPEG-TS segments into fMP4 (MP4/MSE) so it
     // does not reject streams it cannot play natively in the browser.
-    // Also applied directly via PLAYER_LOAD_BEGIN as a belt-and-suspenders fallback.
     options.shakaConfiguration = {
         streaming: {
             // Force mp2t → fMP4 transmuxing on the fly.
@@ -196,7 +175,7 @@
     options.customNamespaces = {
         [DIAGNOSTICS_NAMESPACE]: cast.framework.system.MessageType.JSON,
     };
-    options.versionCode = 7;
+    options.versionCode = 8;
 
     context.start(options);
 })();
