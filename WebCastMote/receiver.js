@@ -8,6 +8,16 @@
     const context = cast.framework.CastReceiverContext.getInstance();
     const playerManager = context.getPlayerManager();
 
+    const showReceiverMessage = (title, detail) => {
+        document.getElementById('receiver-message-title').textContent = title;
+        document.getElementById('receiver-message-detail').textContent = detail;
+        document.getElementById('receiver-message').hidden = false;
+    };
+
+    const hideReceiverMessage = () => {
+        document.getElementById('receiver-message').hidden = true;
+    };
+
     const broadcastDiagnostic = (type, details = {}) => {
         const payload = {
             type,
@@ -45,20 +55,12 @@
             const height = Number(details.height) || undefined;
             const frameRate = Number(details.frameRate) || undefined;
             const codecs = details.codecs || undefined;
-            // For HLS / MPEG-TS streams we skip canDisplayType entirely.
-            // The native CAF player (useShakaForHls=false) handles MPEG-TS HLS
-            // natively on Chromecast, but canDisplayType("video/mp2t") returns
-            // false on most devices even when playback would succeed.  Blocking
-            // on that result causes a spurious PLAYBACK_REJECTED / error 905.
             const isMpegTsHls =
                 looksLikeHls && details.container === 'HLS_MPEG2_TS';
 
             let canDisplay = true;
-            let capabilityType = null;
-            if (!isMpegTsHls && codecs) {
-                // Only run the capability check for non-HLS direct media where
-                // MSE codec support actually matters.
-                capabilityType = media.contentType;
+            let capabilityType = isMpegTsHls ? 'video/mp2t' : media.contentType;
+            if (codecs) {
                 canDisplay = context.canDisplayType(
                     capabilityType,
                     codecs,
@@ -75,24 +77,46 @@
                 width: width || null,
                 height: height || null,
                 frameRate: frameRate || null,
-                skipped: isMpegTsHls || !codecs,
+                skipped: !codecs,
             });
 
-            if (!canDisplay) {
+            // Legacy Chromecast decoders top out at a 1920-pixel H.264 frame.
+            // Let standard-size HLS use native playback even if the generic
+            // mp2t capability query is conservative, but reject a confirmed
+            // oversized stream instead of producing audio over a black screen.
+            if (!canDisplay && width && width > 1920) {
+                showReceiverMessage(
+                    'Video format is not supported',
+                    `${width}×${height || '?'} video exceeds this Chromecast's decoder limit. ` +
+                        'Choose a 1080p or lower stream.',
+                );
                 broadcastDiagnostic('PLAYBACK_REJECTED', {
                     reason: 'VIDEO_FORMAT_NOT_SUPPORTED',
                     codecs: codecs || null,
                     width: width || null,
                     height: height || null,
                 });
-                return null; // tell CAF to reject cleanly
+                const error = new cast.framework.messages.ErrorData(
+                    cast.framework.messages.ErrorType.LOAD_FAILED,
+                );
+                error.reason = cast.framework.messages.ErrorReason.NOT_SUPPORTED;
+                error.customData = {
+                    reason: 'VIDEO_FORMAT_NOT_SUPPORTED',
+                    codecs,
+                    width,
+                    height,
+                    frameRate,
+                };
+                return error;
             }
+
+            hideReceiverMessage();
 
             broadcastDiagnostic('LOAD_RECEIVED', {
                 url,
                 contentType: media.contentType || null,
                 streamType: media.streamType || null,
-                playbackEngine: isMpegTsHls ? 'shaka-hls-mpegts' : looksLikeHls ? 'shaka-hls' : 'caf-default',
+                playbackEngine: looksLikeHls ? 'native-hls' : 'caf-default',
             });
             return request;
         },
@@ -156,26 +180,14 @@
 
     const options = new cast.framework.CastReceiverOptions();
     options.statusText = 'Ready to cast';
-    // Use Shaka (MSE) for HLS instead of the native player.
-    // The native CAF player silently drops video frames for MPEG-TS streams
-    // with non-16-aligned widths (e.g. 1936px) due to a chroma siting issue
-    // in the Chromecast compositor — audio plays but video is black.
-    // Shaka demuxes MPEG-TS correctly and feeds clean frames to the video
-    // element, which resolves audio-only playback on those streams.
-    options.useShakaForHls = true;
-    // Allow Shaka to transmux MPEG-TS segments into fMP4 (MP4/MSE) so it
-    // does not reject streams it cannot play natively in the browser.
-    options.shakaConfiguration = {
-        streaming: {
-            // Force mp2t → fMP4 transmuxing on the fly.
-            forceTransmux: true,
-        },
-    };
+    // Native HLS is required on older Chromecast devices. Shaka/MSE rejects
+    // otherwise valid MPEG-TS streams with error 4032 before playback starts.
+    options.useShakaForHls = false;
     options.playbackConfig = playbackConfig;
     options.customNamespaces = {
         [DIAGNOSTICS_NAMESPACE]: cast.framework.system.MessageType.JSON,
     };
-    options.versionCode = 8;
+    options.versionCode = 9;
 
     context.start(options);
 })();
