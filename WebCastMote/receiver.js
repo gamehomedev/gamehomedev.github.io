@@ -137,26 +137,23 @@
         },
     );
 
-    // Fires when the underlying <video> element becomes ready.
+    // PLAYER_LOAD_BEGIN fires right before Shaka starts loading content.
+    // Use it as a belt-and-suspenders place to apply forceTransmux directly
+    // on the Shaka instance in case shakaConfiguration is silently ignored.
     playerManager.addEventListener(
-        cast.framework.events.EventType.MEDIA_ELEMENT_CHANGED,
-        (event) => {
-            const el = event.mediaElement;
-            if (!el) return;
-            broadcastDiagnostic('MEDIA_ELEMENT_READY', {
-                videoWidth: el.videoWidth,
-                videoHeight: el.videoHeight,
-                readyState: el.readyState,
-            });
-            // Belt-and-suspenders: configure Shaka's transmuxer directly on the
-            // player instance in case shakaConfiguration was silently ignored.
+        cast.framework.events.EventType.PLAYER_LOAD_BEGIN,
+        () => {
             try {
-                const shaka = playerManager.getShaka
-                    ? playerManager.getShaka()
+                // cast.player is the underlying Shaka player in CAF.
+                const shaka = cast.player && cast.player.api
+                    ? cast.player.api.getPlayer()
                     : null;
                 if (shaka && typeof shaka.configure === 'function') {
                     shaka.configure('streaming.forceTransmux', true);
                     broadcastDiagnostic('SHAKA_CONFIGURED', { forceTransmux: true });
+                } else {
+                    broadcastDiagnostic('SHAKA_CONFIGURE_SKIPPED',
+                        { reason: 'no Shaka instance found via cast.player.api' });
                 }
             } catch (e) {
                 broadcastDiagnostic('SHAKA_CONFIGURE_FAILED', { error: String(e) });
@@ -188,7 +185,7 @@
     options.useShakaForHls = true;
     // Allow Shaka to transmux MPEG-TS segments into fMP4 (MP4/MSE) so it
     // does not reject streams it cannot play natively in the browser.
-    // (Also applied directly via MEDIA_ELEMENT_CHANGED as a fallback.)
+    // Also applied directly via PLAYER_LOAD_BEGIN as a belt-and-suspenders fallback.
     options.shakaConfiguration = {
         streaming: {
             // Force mp2t → fMP4 transmuxing on the fly.
@@ -199,7 +196,7 @@
     options.customNamespaces = {
         [DIAGNOSTICS_NAMESPACE]: cast.framework.system.MessageType.JSON,
     };
-    options.versionCode = 6;
+    options.versionCode = 7;
 
     context.start(options);
 })();
