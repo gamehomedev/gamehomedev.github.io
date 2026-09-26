@@ -1,0 +1,18 @@
+html,
+body,
+cast-media-player {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: #0d0d14;
+}
+
+cast-media-player {
+    --theme-hue: 255;
+    --progress-color: #b7a7ff;
+    --splash-image: linear-gradient(145deg, #251c49, #0d0d14 68%);
+    --splash-size: cover;
+    --logo-image: none;
+    --watermark-image: none;
+}
