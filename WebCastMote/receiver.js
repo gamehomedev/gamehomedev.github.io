@@ -40,6 +40,51 @@
                 media.contentType = HLS_CONTENT_TYPE;
             }
 
+            const details = media.customData || {};
+            const width = Number(details.width) || undefined;
+            const height = Number(details.height) || undefined;
+            const frameRate = Number(details.frameRate) || undefined;
+            const codecs = details.codecs || undefined;
+            const capabilityType =
+                details.container === 'HLS_MPEG2_TS' ? 'video/mp2t' : media.contentType;
+            const canDisplay = codecs
+                ? context.canDisplayType(
+                    capabilityType,
+                    codecs,
+                    width,
+                    height,
+                    frameRate,
+                )
+                : true;
+
+            broadcastDiagnostic('CAPABILITY_CHECK', {
+                supported: canDisplay,
+                contentType: capabilityType || null,
+                codecs: codecs || null,
+                width: width || null,
+                height: height || null,
+                frameRate: frameRate || null,
+            });
+
+            // A 1936-pixel H.264 stream is wider than the 1920-pixel decoder
+            // limit of legacy Chromecast devices. Without this check those
+            // devices report PLAYING and output AAC audio over a black screen.
+            if (!canDisplay && width && width > 1920) {
+                const error = new cast.framework.messages.ErrorData(
+                    cast.framework.messages.ErrorType.LOAD_FAILED,
+                );
+                error.reason = cast.framework.messages.ErrorReason.NOT_SUPPORTED;
+                error.customData = {
+                    reason: 'VIDEO_FORMAT_NOT_SUPPORTED',
+                    codecs,
+                    width,
+                    height,
+                    frameRate,
+                };
+                broadcastDiagnostic('PLAYBACK_REJECTED', error.customData);
+                return error;
+            }
+
             broadcastDiagnostic('LOAD_RECEIVED', {
                 url,
                 contentType: media.contentType || null,
@@ -90,7 +135,7 @@
     options.customNamespaces = {
         [DIAGNOSTICS_NAMESPACE]: cast.framework.system.MessageType.JSON,
     };
-    options.versionCode = 2;
+    options.versionCode = 3;
 
     context.start(options);
 })();
