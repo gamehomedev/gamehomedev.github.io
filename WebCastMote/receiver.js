@@ -45,17 +45,28 @@
             const height = Number(details.height) || undefined;
             const frameRate = Number(details.frameRate) || undefined;
             const codecs = details.codecs || undefined;
-            const capabilityType =
-                details.container === 'HLS_MPEG2_TS' ? 'video/mp2t' : media.contentType;
-            const canDisplay = codecs
-                ? context.canDisplayType(
+            // For HLS / MPEG-TS streams we skip canDisplayType entirely.
+            // The native CAF player (useShakaForHls=false) handles MPEG-TS HLS
+            // natively on Chromecast, but canDisplayType("video/mp2t") returns
+            // false on most devices even when playback would succeed.  Blocking
+            // on that result causes a spurious PLAYBACK_REJECTED / error 905.
+            const isMpegTsHls =
+                looksLikeHls && details.container === 'HLS_MPEG2_TS';
+
+            let canDisplay = true;
+            let capabilityType = null;
+            if (!isMpegTsHls && codecs) {
+                // Only run the capability check for non-HLS direct media where
+                // MSE codec support actually matters.
+                capabilityType = media.contentType;
+                canDisplay = context.canDisplayType(
                     capabilityType,
                     codecs,
                     width,
                     height,
                     frameRate,
-                )
-                : true;
+                );
+            }
 
             broadcastDiagnostic('CAPABILITY_CHECK', {
                 supported: canDisplay,
@@ -64,32 +75,24 @@
                 width: width || null,
                 height: height || null,
                 frameRate: frameRate || null,
+                skipped: isMpegTsHls || !codecs,
             });
 
-            // A 1936-pixel H.264 stream is wider than the 1920-pixel decoder
-            // limit of legacy Chromecast devices. Without this check those
-            // devices report PLAYING and output AAC audio over a black screen.
-            if (!canDisplay && width && width > 1920) {
-                const error = new cast.framework.messages.ErrorData(
-                    cast.framework.messages.ErrorType.LOAD_FAILED,
-                );
-                error.reason = cast.framework.messages.ErrorReason.NOT_SUPPORTED;
-                error.customData = {
+            if (!canDisplay) {
+                broadcastDiagnostic('PLAYBACK_REJECTED', {
                     reason: 'VIDEO_FORMAT_NOT_SUPPORTED',
-                    codecs,
-                    width,
-                    height,
-                    frameRate,
-                };
-                broadcastDiagnostic('PLAYBACK_REJECTED', error.customData);
-                return error;
+                    codecs: codecs || null,
+                    width: width || null,
+                    height: height || null,
+                });
+                return null; // tell CAF to reject cleanly
             }
 
             broadcastDiagnostic('LOAD_RECEIVED', {
                 url,
                 contentType: media.contentType || null,
                 streamType: media.streamType || null,
-                playbackEngine: looksLikeHls ? 'native-hls' : 'caf-default',
+                playbackEngine: isMpegTsHls ? 'native-hls-mpegts' : looksLikeHls ? 'native-hls' : 'caf-default',
             });
             return request;
         },
@@ -135,7 +138,7 @@
     options.customNamespaces = {
         [DIAGNOSTICS_NAMESPACE]: cast.framework.system.MessageType.JSON,
     };
-    options.versionCode = 3;
+    options.versionCode = 4;
 
     context.start(options);
 })();
