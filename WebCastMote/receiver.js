@@ -44,6 +44,7 @@
                 url,
                 contentType: media.contentType || null,
                 streamType: media.streamType || null,
+                playbackEngine: looksLikeHls ? 'native-hls' : 'caf-default',
             });
             return request;
         },
@@ -79,37 +80,17 @@
     };
     playbackConfig.manifestHandler = (manifest) =>
         manifest.replace(/^\uFEFF/, '').trimStart();
-    playbackConfig.shakaConfig = {
-        manifest: {
-            retryParameters: {
-                maxAttempts: 4,
-                baseDelay: 500,
-                backoffFactor: 2,
-                fuzzFactor: 0.5,
-                timeout: 15000,
-            },
-        },
-        streaming: {
-            bufferingGoal: 20,
-            rebufferingGoal: 2,
-            retryParameters: {
-                maxAttempts: 4,
-                baseDelay: 500,
-                backoffFactor: 2,
-                fuzzFactor: 0.5,
-                timeout: 15000,
-            },
-        },
-    };
 
     const options = new cast.framework.CastReceiverOptions();
     options.statusText = 'Ready to cast';
-    options.useShakaForHls = true;
+    // Older Chromecast models can play MPEG-TS HLS through CAF's native player
+    // even when Shaka/MSE rejects the same stream with CONTENT_UNSUPPORTED_BY_BROWSER (4032).
+    options.useShakaForHls = false;
     options.playbackConfig = playbackConfig;
     options.customNamespaces = {
         [DIAGNOSTICS_NAMESPACE]: cast.framework.system.MessageType.JSON,
     };
-    options.versionCode = 1;
+    options.versionCode = 2;
 
     context.start(options);
 })();
