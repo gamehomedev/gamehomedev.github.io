@@ -3,7 +3,7 @@
 
     const DIAGNOSTICS_NAMESPACE =
         'urn:x-cast:com.gamehomedev.webcastmote.diagnostics';
-    const HLS_CONTENT_TYPE = 'application/x-mpegurl';
+    const HLS_CONTENT_TYPE = 'application/vnd.apple.mpegurl';
 
     const context = cast.framework.CastReceiverContext.getInstance();
     const playerManager = context.getPlayerManager();
@@ -101,34 +101,15 @@
                 skipped: !codecs,
             });
 
-            // Legacy Chromecast decoders top out at a 1920-pixel H.264 frame.
-            // Let standard-size HLS use native playback even if the generic
-            // mp2t capability query is conservative, but reject a confirmed
-            // oversized stream instead of producing audio over a black screen.
-            if (!canDisplay && width && width > 1920) {
-                showReceiverMessage(
-                    'Video format is not supported',
-                    `${width}×${height || '?'} video exceeds this Chromecast's decoder limit. ` +
-                        'Choose a 1080p or lower stream.',
-                );
-                broadcastDiagnostic('PLAYBACK_REJECTED', {
-                    reason: 'VIDEO_FORMAT_NOT_SUPPORTED',
+            // canDisplayType() is advisory. Some legacy Chromecast firmware
+            // returns false for MPEG-TS streams that its native HLS pipeline
+            // can still decode. Continue playback and report the mismatch.
+            if (!canDisplay) {
+                broadcastDiagnostic('CAPABILITY_WARNING', {
                     codecs: codecs || null,
                     width: width || null,
                     height: height || null,
                 });
-                const error = new cast.framework.messages.ErrorData(
-                    cast.framework.messages.ErrorType.LOAD_FAILED,
-                );
-                error.reason = cast.framework.messages.ErrorReason.NOT_SUPPORTED;
-                error.customData = {
-                    reason: 'VIDEO_FORMAT_NOT_SUPPORTED',
-                    codecs,
-                    width,
-                    height,
-                    frameRate,
-                };
-                return error;
             }
 
             hideReceiverMessage();
@@ -208,7 +189,7 @@
     options.customNamespaces = {
         [DIAGNOSTICS_NAMESPACE]: cast.framework.system.MessageType.JSON,
     };
-    options.versionCode = 10;
+    options.versionCode = 11;
 
     context.start(options);
 })();
