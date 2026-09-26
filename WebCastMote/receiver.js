@@ -116,6 +116,54 @@
         () => broadcastDiagnostic('PLAYER_LOAD_COMPLETE'),
     );
 
+    // Fires when Shaka selects an audio or video bitrate variant.
+    // A missing VIDEO entry here means Shaka found no playable video track.
+    playerManager.addEventListener(
+        cast.framework.events.EventType.BITRATE_CHANGED,
+        (event) => {
+            broadcastDiagnostic('BITRATE_CHANGED', {
+                totalBitrate: event.totalBitrate ?? null,
+                audioBitrate: event.audioBitrate ?? null,
+                videoBitrate: event.videoBitrate ?? null,
+            });
+        },
+    );
+
+    // Fires when playback stalls waiting for data.
+    playerManager.addEventListener(
+        cast.framework.events.EventType.BUFFERING,
+        (event) => {
+            broadcastDiagnostic('BUFFERING', { isBuffering: event.isBuffering });
+        },
+    );
+
+    // Fires when the underlying <video> element becomes ready.
+    playerManager.addEventListener(
+        cast.framework.events.EventType.MEDIA_ELEMENT_CHANGED,
+        (event) => {
+            const el = event.mediaElement;
+            if (!el) return;
+            broadcastDiagnostic('MEDIA_ELEMENT_READY', {
+                videoWidth: el.videoWidth,
+                videoHeight: el.videoHeight,
+                readyState: el.readyState,
+            });
+            // Belt-and-suspenders: configure Shaka's transmuxer directly on the
+            // player instance in case shakaConfiguration was silently ignored.
+            try {
+                const shaka = playerManager.getShaka
+                    ? playerManager.getShaka()
+                    : null;
+                if (shaka && typeof shaka.configure === 'function') {
+                    shaka.configure('streaming.forceTransmux', true);
+                    broadcastDiagnostic('SHAKA_CONFIGURED', { forceTransmux: true });
+                }
+            } catch (e) {
+                broadcastDiagnostic('SHAKA_CONFIGURE_FAILED', { error: String(e) });
+            }
+        },
+    );
+
     const playbackConfig = new cast.framework.PlaybackConfig();
     playbackConfig.autoResumeNumberOfSegments = 1;
     playbackConfig.manifestRequestHandler = (requestInfo) => {
@@ -140,9 +188,10 @@
     options.useShakaForHls = true;
     // Allow Shaka to transmux MPEG-TS segments into fMP4 (MP4/MSE) so it
     // does not reject streams it cannot play natively in the browser.
+    // (Also applied directly via MEDIA_ELEMENT_CHANGED as a fallback.)
     options.shakaConfiguration = {
         streaming: {
-            // Force mp2t transmuxing; Shaka will convert TS → fMP4 on the fly.
+            // Force mp2t → fMP4 transmuxing on the fly.
             forceTransmux: true,
         },
     };
@@ -150,7 +199,7 @@
     options.customNamespaces = {
         [DIAGNOSTICS_NAMESPACE]: cast.framework.system.MessageType.JSON,
     };
-    options.versionCode = 5;
+    options.versionCode = 6;
 
     context.start(options);
 })();
