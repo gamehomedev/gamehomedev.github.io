@@ -72,6 +72,7 @@
 
             const hasMedia = [ReceiverState.LOADING, ReceiverState.BUFFERING, ReceiverState.PLAYING, ReceiverState.PAUSED].includes(state);
             this.mediaPanel.hidden = !hasMedia;
+            this.footer.hidden = !hasMedia;
             this.footer.textContent = hasMedia ? 'Control playback from WebCastMote on your phone' : 'Choose a video in WebCastMote on your phone';
 
             if (state === ReceiverState.PLAYING) {
@@ -269,6 +270,6 @@
     options.useShakaForHls = false;
     options.playbackConfig = playbackConfig;
     options.customNamespaces = { [DIAGNOSTICS_NAMESPACE]: cast.framework.system.MessageType.JSON };
-    options.versionCode = 13;
+    options.versionCode = 14;
     context.start(options);
 })();
