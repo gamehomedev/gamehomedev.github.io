@@ -4,15 +4,45 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>WebCastMote Receiver</title>
-    <link rel="stylesheet" href="receiver.css">
+    <link rel="stylesheet" href="receiver.css?v=12">
 </head>
 <body>
     <video id="cast-video" class="castMediaElement" autoplay playsinline></video>
+
+    <main id="receiver-ui" class="receiver-ui" data-state="splash" aria-live="polite">
+        <div class="ambient ambient-one"></div>
+        <div class="ambient ambient-two"></div>
+        <header class="brand">
+            <div class="brand-mark" aria-hidden="true">W</div>
+            <span>WebCastMote</span>
+        </header>
+        <section class="status-stage">
+            <div id="status-visual" class="status-visual" aria-hidden="true">
+                <div class="status-ring"></div><div class="status-core">W</div>
+            </div>
+            <p id="status-kicker" class="status-kicker">WELCOME</p>
+            <h1 id="status-title">WebCastMote</h1>
+            <p id="status-detail" class="status-detail">A better way to enjoy media on your TV</p>
+        </section>
+        <section id="media-panel" class="media-panel" hidden>
+            <div class="media-art" aria-hidden="true"><span class="media-play"></span></div>
+            <div class="media-copy">
+                <div class="media-heading-row">
+                    <p id="media-eyebrow" class="media-eyebrow">NOW PLAYING</p>
+                    <span id="media-state" class="media-state">Playing</span>
+                </div>
+                <h2 id="media-title">Web video</h2>
+                <div class="timeline" aria-hidden="true"><div id="timeline-progress" class="timeline-progress"></div></div>
+                <div class="time-row"><span id="media-position">0:00</span><span id="media-duration">--:--</span></div>
+            </div>
+        </section>
+        <footer id="receiver-footer">Choose a video in WebCastMote on your phone</footer>
+    </main>
     <div id="receiver-message" role="alert" hidden>
-        <h1 id="receiver-message-title"></h1>
-        <p id="receiver-message-detail"></p>
+        <div class="error-symbol" aria-hidden="true">!</div>
+        <h1 id="receiver-message-title"></h1><p id="receiver-message-detail"></p>
     </div>
     <script src="//www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
-    <script src="receiver.js?v=11"></script>
+    <script src="receiver.js?v=12"></script>
 </body>
 </html>
