@@ -270,6 +270,6 @@
     options.useShakaForHls = false;
     options.playbackConfig = playbackConfig;
     options.customNamespaces = { [DIAGNOSTICS_NAMESPACE]: cast.framework.system.MessageType.JSON };
-    options.versionCode = 14;
+    options.versionCode = 15;
     context.start(options);
 })();

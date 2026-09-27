@@ -27,9 +27,15 @@ html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background:
 .status-visual { position: relative; display: grid; place-items: center; width: clamp(5.5rem,10vw,9rem); height: clamp(5.5rem,10vw,9rem); margin: 0 auto 3vh; }
 .status-core { display: grid; place-items: center; width: 67%; height: 67%; border-radius: 28%; color: #181126; background: linear-gradient(145deg,#d0c4ff,#8062ff); font-size: clamp(2rem,4.5vw,4rem); font-weight: 900; box-shadow: 0 20px 70px rgba(124,92,255,.4); }
 .status-ring { position: absolute; inset: 0; border: .22rem solid rgba(182,162,255,.22); border-top-color: var(--violet); border-radius: 50%; }
+[data-state="waiting"] .status-ring,
 [data-state="connecting"] .status-ring,
 [data-state="loading"] .status-ring,
-[data-state="buffering"] .status-ring { animation: spin .9s linear infinite; will-change: transform; }
+[data-state="buffering"] .status-ring {
+    animation: spin .9s linear infinite;
+    will-change: transform;
+    contain: paint;
+    backface-visibility: hidden;
+}
 .status-kicker, .media-eyebrow { margin: 0 0 1.2vh; color: var(--violet); font-size: clamp(.8rem,1.25vw,1.2rem); font-weight: 800; letter-spacing: .18em; }
 .status-stage h1 { margin: 0; font-size: clamp(3rem,6.5vw,6.5rem); line-height: 1.04; letter-spacing: -.055em; }
 .status-detail { margin: 2vh auto 0; color: var(--muted); font-size: clamp(1.2rem,2.2vw,2.2rem); line-height: 1.45; }
