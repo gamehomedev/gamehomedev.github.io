@@ -33,10 +33,12 @@
             this.messageDetail = document.getElementById('receiver-message-detail');
             this.title = 'Web video';
             this.state = ReceiverState.SPLASH;
+            this.hasStartedPlayback = false;
             this.hideTimer = null;
         }
 
         setMedia(media) {
+            this.hasStartedPlayback = false;
             this.title = media?.metadata?.title || media?.customData?.title || 'Web video';
             this.mediaTitle.textContent = this.title;
             this.mediaPanel.hidden = false;
@@ -46,6 +48,13 @@
             this.state = state;
             this.root.dataset.state = state;
             this.root.classList.remove('is-idle');
+            if (state === ReceiverState.PLAYING) this.hasStartedPlayback = true;
+            const isPlaybackOverlay = this.hasStartedPlayback && [
+                ReceiverState.PLAYING,
+                ReceiverState.PAUSED,
+                ReceiverState.BUFFERING,
+            ].includes(state);
+            this.root.classList.toggle('playback-active', isPlaybackOverlay);
             this.hideMessage();
             clearTimeout(this.hideTimer);
 
@@ -68,7 +77,7 @@
             if (state === ReceiverState.PLAYING) {
                 this.mediaEyebrow.textContent = 'NOW PLAYING';
                 this.mediaState.textContent = 'Playing';
-                this.hideTimer = setTimeout(() => this.root.classList.add('is-idle'), 4500);
+                this.hideTimer = setTimeout(() => this.root.classList.add('is-idle'), 1800);
             } else if (state === ReceiverState.PAUSED) {
                 this.mediaEyebrow.textContent = 'PLAYBACK PAUSED';
                 this.mediaState.textContent = 'Paused';
@@ -86,7 +95,13 @@
             if (this.state !== ReceiverState.PLAYING) return;
             this.root.classList.remove('is-idle');
             clearTimeout(this.hideTimer);
-            this.hideTimer = setTimeout(() => this.root.classList.add('is-idle'), 3000);
+            this.hideTimer = setTimeout(() => this.root.classList.add('is-idle'), 1600);
+        }
+
+        resetMedia() {
+            this.hasStartedPlayback = false;
+            this.root.classList.remove('playback-active', 'is-idle');
+            this.mediaPanel.hidden = true;
         }
 
         updateProgress() {
@@ -148,7 +163,7 @@
         errorMessage: video.error?.message ?? null,
     });
 
-    const startupTimer = setTimeout(() => view.render(ReceiverState.CONNECTING), 1100);
+    const startupTimer = setTimeout(() => view.render(ReceiverState.CONNECTING), 320);
     context.addEventListener(cast.framework.system.EventType.READY, () => {
         clearTimeout(startupTimer);
         view.render(context.getSenders().length > 0 ? ReceiverState.WAITING : ReceiverState.CONNECTING);
@@ -222,6 +237,7 @@
         broadcastDiagnostic('BUFFERING', { isBuffering: event.isBuffering });
     });
     playerManager.addEventListener(cast.framework.events.EventType.MEDIA_FINISHED, () => {
+        view.resetMedia();
         view.render(ReceiverState.WAITING);
     });
     playerManager.addEventListener(cast.framework.events.EventType.ERROR, (event) => {
@@ -253,6 +269,6 @@
     options.useShakaForHls = false;
     options.playbackConfig = playbackConfig;
     options.customNamespaces = { [DIAGNOSTICS_NAMESPACE]: cast.framework.system.MessageType.JSON };
-    options.versionCode = 12;
+    options.versionCode = 13;
     context.start(options);
 })();
