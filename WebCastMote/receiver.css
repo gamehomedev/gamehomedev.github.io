@@ -22,6 +22,7 @@ html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background:
 .ambient { display: none; }
 .brand { z-index: 1; display: flex; align-items: center; gap: 1rem; font-size: clamp(1.2rem,2vw,2rem); font-weight: 700; letter-spacing: -.02em; }
 .brand-mark { display: grid; place-items: center; width: 2.4rem; height: 2.4rem; border-radius: .72rem; color: #20143e; background: linear-gradient(145deg,#d0c4ff,#7655f7); box-shadow: 0 0 32px rgba(124,92,255,.42); font-size: 1.25rem; font-weight: 900; }
+.receiver-version-badge { display: inline-flex; align-items: center; padding: .2em .65em; border-radius: 999px; font-size: clamp(.65rem,.9vw,.85rem); font-weight: 700; letter-spacing: .06em; color: var(--violet); background: rgba(182,162,255,.14); border: 1px solid rgba(182,162,255,.28); line-height: 1.2; }
 .status-stage { z-index: 1; align-self: center; justify-self: center; width: min(74vw,68rem); text-align: center; }
 [data-state="playing"] .status-stage, [data-state="paused"] .status-stage { display: none; }
 .status-visual { position: relative; display: grid; place-items: center; width: clamp(5.5rem,10vw,9rem); height: clamp(5.5rem,10vw,9rem); margin: 0 auto 3vh; }
@@ -45,7 +46,10 @@ html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background:
 .media-play { width: 0; height: 0; margin-left: 8%; border-top: 1.2rem solid transparent; border-bottom: 1.2rem solid transparent; border-left: 1.75rem solid #211442; }
 .media-copy { min-width: 0; align-self: center; }
 .media-heading-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.media-meta-badges { display: flex; align-items: center; gap: .6rem; }
+.media-version-pill { padding: .4em .75em; border-radius: 999px; color: var(--muted); background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16); font-size: clamp(.65rem,.85vw,.85rem); font-weight: 700; line-height: 1.2; }
 .media-state { padding: .45em .8em; border-radius: 999px; color: #211442; background: var(--violet); font-size: clamp(.72rem,1vw,1rem); font-weight: 800; }
+.error-version { margin-top: 1.5rem; }
 .media-copy h2 { overflow: hidden; margin: 0 0 2vh; font-size: clamp(1.6rem,3.2vw,3.2rem); line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
 .timeline { height: .42rem; overflow: hidden; border-radius: 999px; background: rgba(255,255,255,.18); }
 .timeline-progress { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg,#8f72ff,#d2c7ff); transition: width 100ms linear; }

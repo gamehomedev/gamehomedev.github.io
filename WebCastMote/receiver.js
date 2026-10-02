@@ -1,6 +1,8 @@
 (() => {
     'use strict';
 
+    const RECEIVER_VERSION_CODE = 17;
+    const RECEIVER_VERSION_NAME = `v${RECEIVER_VERSION_CODE}`;
     const DIAGNOSTICS_NAMESPACE = 'urn:x-cast:com.gamehomedev.webcastmote.diagnostics';
     const HLS_CONTENT_TYPE = 'application/vnd.apple.mpegurl';
     const ReceiverState = Object.freeze({
@@ -17,6 +19,9 @@
         constructor(video) {
             this.video = video;
             this.root = document.getElementById('receiver-ui');
+            document.querySelectorAll('.receiver-version-label').forEach((el) => {
+                el.textContent = RECEIVER_VERSION_NAME;
+            });
             this.statusKicker = document.getElementById('status-kicker');
             this.statusTitle = document.getElementById('status-title');
             this.statusDetail = document.getElementById('status-detail');
@@ -221,7 +226,7 @@
             url,
             contentType: media.contentType || null,
             streamType: media.streamType || null,
-            playbackEngine: looksLikeHls ? 'native-hls' : 'caf-default',
+            playbackEngine: looksLikeHls ? 'shaka' : 'caf-default',
         });
         return request;
     });
@@ -264,12 +269,28 @@
     playbackConfig.manifestRequestHandler = (requestInfo) => { requestInfo.withCredentials = false; return requestInfo; };
     playbackConfig.segmentRequestHandler = (requestInfo) => { requestInfo.withCredentials = false; return requestInfo; };
     playbackConfig.manifestHandler = (manifest) => manifest.replace(/^\uFEFF/, '').trimStart();
+    playbackConfig.shakaConfiguration = {
+        streaming: {
+            bufferingGoal: 30,
+            rebufferingGoal: 2,
+            bufferBehind: 30,
+            ignoreTextStreamFailures: true,
+            alwaysStreamText: false,
+            smallGapLimit: 1.5,
+            jumpLargeGaps: true,
+        },
+        manifest: {
+            hls: {
+                ignoreTextStreamFailures: true,
+            },
+        },
+    };
 
     const options = new cast.framework.CastReceiverOptions();
     options.statusText = 'Ready to cast';
-    options.useShakaForHls = false;
+    options.useShakaForHls = true;
     options.playbackConfig = playbackConfig;
     options.customNamespaces = { [DIAGNOSTICS_NAMESPACE]: cast.framework.system.MessageType.JSON };
-    options.versionCode = 15;
+    options.versionCode = RECEIVER_VERSION_CODE;
     context.start(options);
 })();

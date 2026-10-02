@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>WebCastMote Receiver</title>
-    <link rel="stylesheet" href="receiver.css?v=15">
+    <link rel="stylesheet" href="receiver.css?v=17">
 </head>
 <body>
     <video id="cast-video" class="castMediaElement" autoplay playsinline></video>
@@ -15,6 +15,7 @@
         <header class="brand">
             <div class="brand-mark" aria-hidden="true">W</div>
             <span>WebCastMote</span>
+            <span class="receiver-version-badge receiver-version-label">v17</span>
         </header>
         <section class="status-stage">
             <div id="status-visual" class="status-visual" aria-hidden="true">
@@ -29,7 +30,10 @@
             <div class="media-copy">
                 <div class="media-heading-row">
                     <p id="media-eyebrow" class="media-eyebrow">NOW PLAYING</p>
-                    <span id="media-state" class="media-state">Playing</span>
+                    <div class="media-meta-badges">
+                        <span class="media-version-pill receiver-version-label">v17</span>
+                        <span id="media-state" class="media-state">Playing</span>
+                    </div>
                 </div>
                 <h2 id="media-title">Web video</h2>
                 <div class="timeline" aria-hidden="true"><div id="timeline-progress" class="timeline-progress"></div></div>
@@ -41,8 +45,9 @@
     <div id="receiver-message" role="alert" hidden>
         <div class="error-symbol" aria-hidden="true">!</div>
         <h1 id="receiver-message-title"></h1><p id="receiver-message-detail"></p>
+        <span class="receiver-version-badge receiver-version-label error-version">v17</span>
     </div>
     <script src="//www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
-    <script src="receiver.js?v=15"></script>
+    <script src="receiver.js?v=17"></script>
 </body>
 </html>
