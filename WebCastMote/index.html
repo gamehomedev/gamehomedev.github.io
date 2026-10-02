@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>WebCastMote Receiver</title>
-    <link rel="stylesheet" href="receiver.css?v=18">
+    <link rel="stylesheet" href="receiver.css?v=19">
 </head>
 <body>
     <video id="cast-video" class="castMediaElement" autoplay playsinline></video>
@@ -15,7 +15,7 @@
         <header class="brand">
             <div class="brand-mark" aria-hidden="true">W</div>
             <span>WebCastMote</span>
-            <span class="receiver-version-badge receiver-version-label">v18</span>
+            <span class="receiver-version-badge receiver-version-label">v19</span>
         </header>
         <section class="status-stage">
             <div id="status-visual" class="status-visual" aria-hidden="true">
@@ -31,7 +31,7 @@
                 <div class="media-heading-row">
                     <p id="media-eyebrow" class="media-eyebrow">NOW PLAYING</p>
                     <div class="media-meta-badges">
-                        <span class="media-version-pill receiver-version-label">v18</span>
+                        <span class="media-version-pill receiver-version-label">v19</span>
                         <span id="media-state" class="media-state">Playing</span>
                     </div>
                 </div>
@@ -45,15 +45,15 @@
     <div id="receiver-message" role="alert" hidden>
         <div class="error-symbol" aria-hidden="true">!</div>
         <h1 id="receiver-message-title"></h1><p id="receiver-message-detail"></p>
-        <span class="receiver-version-badge receiver-version-label error-version">v18</span>
+        <span class="receiver-version-badge receiver-version-label error-version">v19</span>
     </div>
-    <script src="mux.min.js?v=18"></script>
+    <script src="mux.min.js?v=19"></script>
     <script>
         if (typeof muxjs === 'undefined') {
             document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/mux.js/6.0.1/mux.min.js"><\/script>');
         }
     </script>
     <script src="//www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
-    <script src="receiver.js?v=18"></script>
+    <script src="receiver.js?v=19"></script>
 </body>
 </html>

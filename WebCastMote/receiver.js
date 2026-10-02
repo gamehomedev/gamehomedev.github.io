@@ -1,13 +1,13 @@
 (() => {
     'use strict';
 
-    const RECEIVER_VERSION_CODE = 18;
+    const RECEIVER_VERSION_CODE = 19;
     const RECEIVER_VERSION_NAME = `v${RECEIVER_VERSION_CODE}`;
     const DIAGNOSTICS_NAMESPACE = 'urn:x-cast:com.gamehomedev.webcastmote.diagnostics';
     const HLS_CONTENT_TYPE = 'application/vnd.apple.mpegurl';
 
     // Intercept cast.__platform__.canDisplayType and navigator.mediaCapabilities.decodingInfo
-    // to prevent variant dropping for H.264/AAC/MPEG2-TS and non-standard resolutions (e.g. 1936x804)
+    // to prevent variant dropping for H.264/AAC/MPEG2-TS and non-standard or 4K/1080p+ resolutions (e.g. 1936x804, 3840x2160)
     const isAcceptableMedia = (typeStr) => {
         if (!typeStr) return true;
         const str = String(typeStr).toLowerCase();
@@ -15,8 +15,8 @@
         const isAacOrMp3 = /mp4a|aac|mp3|mpeg/i.test(str) || !/audio/i.test(str);
         const w = Number((str.match(/width=(\d+)/i) || [])[1]) || 0;
         const h = Number((str.match(/height=(\d+)/i) || [])[1]) || 0;
-        const within1080pBudget = (w === 0 || h === 0) || (w <= 2048 && h <= 1200) || (w * h <= 2200000);
-        return isAvcOrMp4 && isAacOrMp3 && within1080pBudget;
+        const withinBudget = (w === 0 || h === 0) || (w <= 4096 && h <= 2304) || (w * h <= 9500000);
+        return isAvcOrMp4 && isAacOrMp3 && withinBudget;
     };
 
     if (typeof window !== 'undefined' && window.cast && cast.__platform__ && typeof cast.__platform__.canDisplayType === 'function') {
@@ -46,8 +46,8 @@
             const isAac = /mp4a|aac|mp3/i.test(audioType) || !audioType;
             const w = Number(configuration?.video?.width) || 0;
             const h = Number(configuration?.video?.height) || 0;
-            const within1080pBudget = (w === 0 || h === 0) || (w <= 2048 && h <= 1200) || (w * h <= 2200000);
-            if ((isAvc || !videoType) && isAac && within1080pBudget) {
+            const withinBudget = (w === 0 || h === 0) || (w <= 4096 && h <= 2304) || (w * h <= 9500000);
+            if ((isAvc || !videoType) && isAac && withinBudget) {
                 return {
                     supported: true,
                     smooth: true,
@@ -58,6 +58,68 @@
             }
             return { supported: false, smooth: false, powerEfficient: false };
         };
+    }
+
+    // Patch Shaka Player prototype to ensure hardware resolution is not clamped below 4096x4096
+    const patchShakaPlayer = (Player) => {
+        if (!Player || Player._webCastMotePatched) return;
+        Player._webCastMotePatched = true;
+
+        const origSetMax = Player.prototype.setMaxHardwareResolution;
+        if (origSetMax) {
+            Player.prototype.setMaxHardwareResolution = function (w, h) {
+                return origSetMax.call(this, Math.max(w || 0, 4096), Math.max(h || 0, 4096));
+            };
+        }
+
+        const origInit = Player.prototype.init;
+        if (origInit) {
+            Player.prototype.init = function (...args) {
+                try {
+                    if (this.setMaxHardwareResolution) {
+                        this.setMaxHardwareResolution(4096, 4096);
+                    }
+                } catch (_) {}
+                return origInit.apply(this, args);
+            };
+        }
+
+        const origConfigure = Player.prototype.configure;
+        if (origConfigure) {
+            Player.prototype.configure = function (config, ...args) {
+                if (config && config.restrictions) {
+                    config.restrictions.maxWidth = Math.max(config.restrictions.maxWidth || 0, 4096);
+                    config.restrictions.maxHeight = Math.max(config.restrictions.maxHeight || 0, 4096);
+                    config.restrictions.maxPixels = Math.max(config.restrictions.maxPixels || 0, 10000000);
+                }
+                const res = origConfigure.call(this, config, ...args);
+                try {
+                    if (this.setMaxHardwareResolution) {
+                        this.setMaxHardwareResolution(4096, 4096);
+                    }
+                } catch (_) {}
+                return res;
+            };
+        }
+    };
+
+    if (typeof window !== 'undefined') {
+        if (window.shaka && window.shaka.Player) {
+            patchShakaPlayer(window.shaka.Player);
+        } else {
+            let shakaRef = window.shaka;
+            Object.defineProperty(window, 'shaka', {
+                configurable: true,
+                enumerable: true,
+                get() { return shakaRef; },
+                set(val) {
+                    shakaRef = val;
+                    if (shakaRef && shakaRef.Player) {
+                        patchShakaPlayer(shakaRef.Player);
+                    }
+                }
+            });
+        }
     }
 
     const ReceiverState = Object.freeze({
@@ -323,7 +385,19 @@
     playbackConfig.autoResumeNumberOfSegments = 1;
     playbackConfig.manifestRequestHandler = (requestInfo) => { requestInfo.withCredentials = false; return requestInfo; };
     playbackConfig.segmentRequestHandler = (requestInfo) => { requestInfo.withCredentials = false; return requestInfo; };
-    playbackConfig.manifestHandler = (manifest) => manifest.replace(/^\uFEFF/, '').trimStart();
+    playbackConfig.manifestHandler = (manifest) => {
+        let text = manifest.replace(/^\uFEFF/, '').trimStart();
+        // Normalize any non-standard width declarations near 1080p (e.g. 1936x804 -> 1920x804)
+        // so hardware restriction checks in any player engine will never reject the variant.
+        return text.replace(/RESOLUTION=(\d+)x(\d+)/gi, (match, wStr, hStr) => {
+            let w = parseInt(wStr, 10);
+            let h = parseInt(hStr, 10);
+            if (w > 1920 && w <= 2048) {
+                w = 1920;
+            }
+            return `RESOLUTION=${w}x${h}`;
+        });
+    };
     playbackConfig.shakaConfiguration = {
         streaming: {
             bufferingGoal: 30,
@@ -343,6 +417,14 @@
             hls: {
                 ignoreTextStreamFailures: true,
             },
+        },
+        restrictions: {
+            minWidth: 0,
+            maxWidth: 4096,
+            minHeight: 0,
+            maxHeight: 4096,
+            minPixels: 0,
+            maxPixels: 10000000,
         },
     };
 
