@@ -1,10 +1,65 @@
 (() => {
     'use strict';
 
-    const RECEIVER_VERSION_CODE = 17;
+    const RECEIVER_VERSION_CODE = 18;
     const RECEIVER_VERSION_NAME = `v${RECEIVER_VERSION_CODE}`;
     const DIAGNOSTICS_NAMESPACE = 'urn:x-cast:com.gamehomedev.webcastmote.diagnostics';
     const HLS_CONTENT_TYPE = 'application/vnd.apple.mpegurl';
+
+    // Intercept cast.__platform__.canDisplayType and navigator.mediaCapabilities.decodingInfo
+    // to prevent variant dropping for H.264/AAC/MPEG2-TS and non-standard resolutions (e.g. 1936x804)
+    const isAcceptableMedia = (typeStr) => {
+        if (!typeStr) return true;
+        const str = String(typeStr).toLowerCase();
+        const isAvcOrMp4 = /avc1|h264|mp4v|mp4|mp2t|mpegurl/i.test(str);
+        const isAacOrMp3 = /mp4a|aac|mp3|mpeg/i.test(str) || !/audio/i.test(str);
+        const w = Number((str.match(/width=(\d+)/i) || [])[1]) || 0;
+        const h = Number((str.match(/height=(\d+)/i) || [])[1]) || 0;
+        const within1080pBudget = (w === 0 || h === 0) || (w <= 2048 && h <= 1200) || (w * h <= 2200000);
+        return isAvcOrMp4 && isAacOrMp3 && within1080pBudget;
+    };
+
+    if (typeof window !== 'undefined' && window.cast && cast.__platform__ && typeof cast.__platform__.canDisplayType === 'function') {
+        const origPlatformCanDisplay = cast.__platform__.canDisplayType.bind(cast.__platform__);
+        cast.__platform__.canDisplayType = function (type) {
+            try {
+                const res = origPlatformCanDisplay(type);
+                if (res instanceof Promise) {
+                    return res.then((supported) => supported || isAcceptableMedia(type));
+                }
+                if (res) return true;
+            } catch (_) {}
+            return isAcceptableMedia(type);
+        };
+    }
+
+    if (typeof navigator !== 'undefined' && navigator.mediaCapabilities && typeof navigator.mediaCapabilities.decodingInfo === 'function') {
+        const origDecodingInfo = navigator.mediaCapabilities.decodingInfo.bind(navigator.mediaCapabilities);
+        navigator.mediaCapabilities.decodingInfo = async function (configuration) {
+            try {
+                const res = await origDecodingInfo(configuration);
+                if (res && res.supported) return res;
+            } catch (_) {}
+            const videoType = (configuration?.video?.contentType || '').toLowerCase();
+            const audioType = (configuration?.audio?.contentType || '').toLowerCase();
+            const isAvc = /avc1|h264|mp4v|mp4|mp2t/i.test(videoType);
+            const isAac = /mp4a|aac|mp3/i.test(audioType) || !audioType;
+            const w = Number(configuration?.video?.width) || 0;
+            const h = Number(configuration?.video?.height) || 0;
+            const within1080pBudget = (w === 0 || h === 0) || (w <= 2048 && h <= 1200) || (w * h <= 2200000);
+            if ((isAvc || !videoType) && isAac && within1080pBudget) {
+                return {
+                    supported: true,
+                    smooth: true,
+                    powerEfficient: true,
+                    keySystemAccess: null,
+                    configuration: configuration,
+                };
+            }
+            return { supported: false, smooth: false, powerEfficient: false };
+        };
+    }
+
     const ReceiverState = Object.freeze({
         SPLASH: 'splash',
         CONNECTING: 'connecting',
@@ -206,8 +261,8 @@
         const height = Number(details.height) || undefined;
         const frameRate = Number(details.frameRate) || undefined;
         const codecs = details.codecs || undefined;
-        const capabilityType = looksLikeHls && details.container === 'HLS_MPEG2_TS' ? 'video/mp2t' : media.contentType;
-        const canDisplay = codecs ? context.canDisplayType(capabilityType, codecs, width, height, frameRate) : true;
+        const capabilityType = looksLikeHls && details.container === 'HLS_MPEG2_TS' ? 'video/mp4' : (media.contentType || 'video/mp4');
+        const canDisplay = codecs ? context.canDisplayType(capabilityType, codecs, Math.min(width || 1920, 1920), Math.min(height || 1080, 1080), frameRate) : true;
 
         broadcastDiagnostic('CAPABILITY_CHECK', {
             supported: canDisplay,
@@ -278,6 +333,11 @@
             alwaysStreamText: false,
             smallGapLimit: 1.5,
             jumpLargeGaps: true,
+            forceTransmux: true,
+            forceTransmuxTS: true,
+        },
+        mediaSource: {
+            forceTransmux: true,
         },
         manifest: {
             hls: {
