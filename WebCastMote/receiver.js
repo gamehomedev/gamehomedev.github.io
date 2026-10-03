@@ -1,7 +1,7 @@
 (() => {
     'use strict';
 
-    const RECEIVER_VERSION_CODE = 19;
+    const RECEIVER_VERSION_CODE = 20;
     const RECEIVER_VERSION_NAME = `v${RECEIVER_VERSION_CODE}`;
     const DIAGNOSTICS_NAMESPACE = 'urn:x-cast:com.gamehomedev.webcastmote.diagnostics';
     const HLS_CONTENT_TYPE = 'application/vnd.apple.mpegurl';
@@ -103,9 +103,27 @@
         }
     };
 
+    const setupShaka = (shakaObj) => {
+        if (!shakaObj) return;
+        if (shakaObj.Player) patchShakaPlayer(shakaObj.Player);
+        if (shakaObj.net && shakaObj.net.NetworkingEngine && !shakaObj.net.NetworkingEngine._webCastMoteFiltered) {
+            shakaObj.net.NetworkingEngine._webCastMoteFiltered = true;
+            shakaObj.net.NetworkingEngine.registerResponseFilter((type, response) => {
+                if (response && response.headers) {
+                    const ct = (response.headers['content-type'] || response.headers['Content-Type'] || '').toLowerCase();
+                    if (ct.startsWith('image/') || ct.startsWith('text/')) {
+                        if (type === shakaObj.net.NetworkingEngine.RequestType.SEGMENT) {
+                            response.headers['content-type'] = 'video/mp2t';
+                        }
+                    }
+                }
+            });
+        }
+    };
+
     if (typeof window !== 'undefined') {
-        if (window.shaka && window.shaka.Player) {
-            patchShakaPlayer(window.shaka.Player);
+        if (window.shaka) {
+            setupShaka(window.shaka);
         } else {
             let shakaRef = window.shaka;
             Object.defineProperty(window, 'shaka', {
@@ -114,9 +132,7 @@
                 get() { return shakaRef; },
                 set(val) {
                     shakaRef = val;
-                    if (shakaRef && shakaRef.Player) {
-                        patchShakaPlayer(shakaRef.Player);
-                    }
+                    setupShaka(shakaRef);
                 }
             });
         }
