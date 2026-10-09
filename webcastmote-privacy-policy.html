@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - WebCastMote</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent: #38bdf8;
+            --border: #334155;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 2rem 1rem;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 2.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            color: var(--accent);
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        .effective-date {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 1rem;
+        }
+        h2 {
+            font-size: 1.3rem;
+            margin-top: 1.75rem;
+            margin-bottom: 0.75rem;
+            color: #e2e8f0;
+        }
+        p, ul {
+            margin-bottom: 1rem;
+            color: #cbd5e1;
+        }
+        ul {
+            padding-left: 1.5rem;
+        }
+        li {
+            margin-bottom: 0.5rem;
+        }
+        strong {
+            color: var(--text-primary);
+        }
+        a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        footer {
+            margin-top: 3rem;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            border-top: 1px solid var(--border);
+            padding-top: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Privacy Policy for WebCastMote</h1>
+        <div class="effective-date">Last Updated: October 9, 2026</div>
+
+        <p>This Privacy Policy describes how <strong>WebCastMote</strong> ("we", "us", or "our") handles user information in the WebCastMote mobile application (the "App") developed by <strong>GameHomeDev</strong>.</p>
+
+        <h2>1. Information We Do NOT Collect</h2>
+        <p>We believe in privacy by design. WebCastMote is designed to operate locally without collecting or harvesting personal data:</p>
+        <ul>
+            <li>We do <strong>not</strong> collect personally identifiable information (such as your name, email, phone number, or physical address).</li>
+            <li>We do <strong>not</strong> create user profiles, require account registration, or track users across apps or websites.</li>
+            <li>We do <strong>not</strong> sell, rent, or monetize your personal data.</li>
+            <li>We do <strong>not</strong> embed third-party advertising or commercial tracking SDKs.</li>
+        </ul>
+
+        <h2>2. Data Stored Locally on Your Device</h2>
+        <p>All data generated while using the App remains stored strictly on your local device:</p>
+        <ul>
+            <li><strong>Browsing Data:</strong> Web bookmarks, open tabs, browsing history, and cookies are stored locally within the App's sandboxed storage. You can clear this data at any time directly through the app settings or Android App Info > Storage.</li>
+            <li><strong>Device Pairing Data:</strong> Smart TV tokens (e.g., Samsung Tizen TV authorization tokens, Google TV pairing keys) and Bluetooth pairing records are stored locally on your device to facilitate reconnection.</li>
+        </ul>
+
+        <h2>3. Permissions and Their Use</h2>
+        <p>The App requests specific Android device permissions solely to deliver its core functionality:</p>
+        <ul>
+            <li><strong>Bluetooth Permissions (<code>BLUETOOTH_CONNECT</code>, <code>BLUETOOTH_SCAN</code>, <code>BLUETOOTH_ADVERTISE</code>):</strong> Required to emulate a Bluetooth Human Interface Device (HID) wireless mouse, touchpad, keyboard, and gamepad for paired computers or media players. Bluetooth scanning is used strictly with the <code>neverForLocation</code> flag to discover and bond with target devices.</li>
+            <li><strong>Wi-Fi and Network State (<code>INTERNET</code>, <code>ACCESS_NETWORK_STATE</code>, <code>ACCESS_WIFI_STATE</code>, <code>CHANGE_WIFI_MULTICAST_STATE</code>):</strong> Required for local network device discovery (SSDP for Samsung Smart TVs, mDNS for Google TV and Chromecast receivers) and transmitting media casting streams and remote control commands over your local Wi-Fi network.</li>
+            <li><strong>Foreground Service (<code>FOREGROUND_SERVICE_CONNECTED_DEVICE</code>):</strong> Required to keep your Bluetooth mouse/keyboard input connection and Chromecast streaming active when the App is running in the background.</li>
+            <li><strong>Notifications (<code>POST_NOTIFICATIONS</code>):</strong> Used exclusively to display media playback controls and background connection status indicators.</li>
+        </ul>
+
+        <h2>4. Third-Party Services and External Websites</h2>
+        <p>When you use the built-in browser to visit third-party websites or cast online media to a Chromecast device, your interaction with those external sites and services is subject to their respective privacy policies and terms of service. We do not control and are not responsible for third-party websites or media hosts.</p>
+
+        <h2>5. Children's Privacy</h2>
+        <p>The App does not knowingly collect personal information from children under the age of 13. The App functions as a utility tool and does not solicit personal data from any user.</p>
+
+        <h2>6. Security</h2>
+        <p>Local communication with compatible smart televisions and casting targets utilizes industry-standard encryption protocols (such as HTTPS, WSS, and mutual TLS) where supported by the receiving hardware. All local data is isolated within the Android application sandbox.</p>
+
+        <h2>7. Changes to This Privacy Policy</h2>
+        <p>We may update this Privacy Policy from time to time to reflect operational or legal updates. Any modifications will be posted to this page with an updated "Last Updated" date.</p>
+
+        <h2>8. Contact Us</h2>
+        <p>If you have any questions or feedback regarding this Privacy Policy, please contact us at:</p>
+        <p><strong>Developer:</strong> GameHomeDev<br>
+        <strong>Website:</strong> <a href="https://gamehomedev.github.io" target="_blank" rel="noopener">https://gamehomedev.github.io</a></p>
+
+        <footer>
+            &copy; 2026 GameHomeDev. All rights reserved.
+        </footer>
+    </div>
+</body>
+</html>
