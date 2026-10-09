@@ -1,7 +1,7 @@
 (() => {
     'use strict';
 
-    const RECEIVER_VERSION_CODE = 20;
+    const RECEIVER_VERSION_CODE = 21;
     const RECEIVER_VERSION_NAME = `v${RECEIVER_VERSION_CODE}`;
     const DIAGNOSTICS_NAMESPACE = 'urn:x-cast:com.gamehomedev.webcastmote.diagnostics';
     const HLS_CONTENT_TYPE = 'application/vnd.apple.mpegurl';
@@ -11,6 +11,7 @@
     const isAcceptableMedia = (typeStr) => {
         if (!typeStr) return true;
         const str = String(typeStr).toLowerCase();
+        if (/av0?1/i.test(str) && /mp2t/i.test(str)) return false;
         const isAvcOrMp4 = /avc1|h264|mp4v|mp4|mp2t|mpegurl/i.test(str);
         const isAacOrMp3 = /mp4a|aac|mp3|mpeg/i.test(str) || !/audio/i.test(str);
         const w = Number((str.match(/width=(\d+)/i) || [])[1]) || 0;
@@ -42,7 +43,7 @@
             } catch (_) {}
             const videoType = (configuration?.video?.contentType || '').toLowerCase();
             const audioType = (configuration?.audio?.contentType || '').toLowerCase();
-            const isAvc = /avc1|h264|mp4v|mp4|mp2t/i.test(videoType);
+            const isAvc = /avc1|h264|mp4v|mp4|mp2t/i.test(videoType) && !/av0?1/i.test(videoType);
             const isAac = /mp4a|aac|mp3/i.test(audioType) || !audioType;
             const w = Number(configuration?.video?.width) || 0;
             const h = Number(configuration?.video?.height) || 0;
@@ -403,6 +404,10 @@
     playbackConfig.segmentRequestHandler = (requestInfo) => { requestInfo.withCredentials = false; return requestInfo; };
     playbackConfig.manifestHandler = (manifest) => {
         let text = manifest.replace(/^\uFEFF/, '').trimStart();
+        // Remove av01/av1 variants in TS manifests if other H.264 variants exist
+        if (/#EXT-X-STREAM-INF:[^\n]*codecs="[^"]*avc1/i.test(text)) {
+            text = text.replace(/#EXT-X-STREAM-INF:[^\n]*codecs="[^"]*av0?1[^"]*"[^\n]*\n[^\n#][^\n]*\n?/gi, '');
+        }
         // Normalize any non-standard width declarations near 1080p (e.g. 1936x804 -> 1920x804)
         // so hardware restriction checks in any player engine will never reject the variant.
         return text.replace(/RESOLUTION=(\d+)x(\d+)/gi, (match, wStr, hStr) => {
