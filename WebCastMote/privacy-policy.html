@@ -1,0 +1,149 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - WebCastMote</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent: #38bdf8;
+            --border: #334155;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 2rem 1rem;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 2.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            color: var(--accent);
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        .effective-date {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 1rem;
+        }
+        h2 {
+            font-size: 1.3rem;
+            margin-top: 1.75rem;
+            margin-bottom: 0.75rem;
+            color: #e2e8f0;
+        }
+        p, ul {
+            margin-bottom: 1rem;
+            color: #cbd5e1;
+        }
+        ul {
+            padding-left: 1.5rem;
+        }
+        li {
+            margin-bottom: 0.5rem;
+        }
+        strong {
+            color: var(--text-primary);
+        }
+        a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        footer {
+            margin-top: 3rem;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            border-top: 1px solid var(--border);
+            padding-top: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Privacy Policy for WebCastMote</h1>
+        <div class="effective-date">Last Updated: October 9, 2026</div>
+
+        <p>This Privacy Policy describes how <strong>WebCastMote</strong> ("we", "us", or "our") handles user information in the WebCastMote mobile application (the "App") developed by <strong>GameHomeDev</strong>.</p>
+
+        <h2>1. Information We Do NOT Collect Directly</h2>
+        <p>We believe in privacy by design. We do not operate custom backend servers to harvest or store your personal identity:</p>
+        <ul>
+            <li>We do <strong>not</strong> collect personally identifiable information directly (such as your name, email address, physical address, or phone number).</li>
+            <li>We do <strong>not</strong> require user registration, logins, or user account profiles.</li>
+            <li>We do <strong>not</strong> sell, rent, or trade your personal data.</li>
+        </ul>
+
+        <h2>2. Data Stored Locally on Your Device</h2>
+        <p>All application state generated while using the App remains stored strictly on your local device:</p>
+        <ul>
+            <li><strong>Browsing Data:</strong> Web bookmarks, open tabs, browsing history, and cookies are stored locally within the App's sandboxed storage. You can clear this data at any time directly through the app settings or via Android App Info &gt; Storage.</li>
+            <li><strong>Device Pairing Data:</strong> Smart TV tokens (e.g., Samsung Tizen TV authorization tokens, Google TV pairing keys) and Bluetooth pairing records are stored locally on your device to facilitate reconnection.</li>
+        </ul>
+
+        <h2>3. Third-Party Advertising (Unity Ads)</h2>
+        <p>To support continuous development and maintain WebCastMote as a free application, we display third-party advertisements served by <strong>Unity Ads</strong> (operated by Unity Technologies). Unity Ads may automatically collect, process, and share certain device-level information to deliver, personalize, and measure advertisements.</p>
+        <p><strong>Information collected by Unity Ads may include:</strong></p>
+        <ul>
+            <li><strong>Device & Advertising Identifiers:</strong> Google Advertising ID (AAID), IP address, and unique hardware identifiers.</li>
+            <li><strong>Technical & Network Details:</strong> Operating system version, device manufacturer and model, language settings, mobile network carrier, and approximate location derived from your IP address.</li>
+            <li><strong>Ad Performance & Interaction Data:</strong> Ad views, clicks, video completions, and related engagement metrics.</li>
+        </ul>
+        <p>For more information on how Unity processes and protects your data, please review the official <a href="https://unity.com/legal/game-player-and-app-user-privacy-policy" target="_blank" rel="noopener">Unity Privacy Policy</a>.</p>
+        <p><strong>Your Privacy Choices & Opt-Out:</strong> You can reset or delete your Google Advertising ID or opt out of interest-based ads at any time through your Android device settings: <em>Settings &gt; Privacy &gt; Ads &gt; Delete advertising ID (or Reset advertising ID)</em>.</p>
+
+        <h2>4. Permissions and Their Use</h2>
+        <p>The App requests specific Android device permissions solely to deliver its core functionality:</p>
+        <ul>
+            <li><strong>Bluetooth Permissions (<code>BLUETOOTH_CONNECT</code>, <code>BLUETOOTH_SCAN</code>, <code>BLUETOOTH_ADVERTISE</code>):</strong> Required to emulate a Bluetooth Human Interface Device (HID) wireless mouse, touchpad, keyboard, and gamepad for paired computers or media players. Bluetooth scanning is used strictly with the <code>neverForLocation</code> flag to discover and bond with target devices.</li>
+            <li><strong>Wi-Fi and Network State (<code>INTERNET</code>, <code>ACCESS_NETWORK_STATE</code>, <code>ACCESS_WIFI_STATE</code>, <code>CHANGE_WIFI_MULTICAST_STATE</code>):</strong> Required for local network device discovery (SSDP for Samsung Smart TVs, mDNS for Google TV and Chromecast receivers), loading web pages, displaying advertisements, and streaming media over Wi-Fi.</li>
+            <li><strong>Foreground Service (<code>FOREGROUND_SERVICE_CONNECTED_DEVICE</code>):</strong> Required to keep your Bluetooth mouse/keyboard input connection and Chromecast streaming active when the App is running in the background.</li>
+            <li><strong>Notifications (<code>POST_NOTIFICATIONS</code>):</strong> Used exclusively to display media playback controls and background connection status indicators.</li>
+        </ul>
+
+        <h2>5. Third-Party Services and External Websites</h2>
+        <p>When you use the built-in browser to visit third-party websites or cast online media to a Chromecast device, your interaction with those external sites and services is governed by their respective privacy policies and terms of service. We do not control and are not responsible for third-party web content or external media hosts.</p>
+
+        <h2>6. Children's Privacy</h2>
+        <p>WebCastMote is not directed to children under the age of 13. We do not knowingly collect personal information from children under 13. Furthermore, advertisements served in the App are configured in accordance with applicable Google Play Families and COPPA regulations.</p>
+
+        <h2>7. Security</h2>
+        <p>Local communication with compatible smart televisions and casting targets utilizes industry-standard encryption protocols (such as HTTPS, WSS, and mutual TLS) where supported by the receiving hardware. All local data is isolated within the Android application sandbox, and data transmitted to ad networks is encrypted in transit using HTTPS.</p>
+
+        <h2>8. Changes to This Privacy Policy</h2>
+        <p>We may update this Privacy Policy from time to time to reflect operational, legal, or SDK updates. Any modifications will be posted to this page with an updated "Last Updated" date.</p>
+
+        <h2>9. Contact Us</h2>
+        <p>If you have any questions or feedback regarding this Privacy Policy, please contact us at:</p>
+        <p><strong>Developer:</strong> GameHomeDev<br>
+        <strong>Website:</strong> <a href="https://gamehomedev.github.io" target="_blank" rel="noopener">https://gamehomedev.github.io</a></p>
+
+        <footer>
+            &copy; 2026 GameHomeDev. All rights reserved.
+        </footer>
+    </div>
+</body>
+</html>
