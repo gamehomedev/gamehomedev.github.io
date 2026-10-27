@@ -1,7 +1,7 @@
 (() => {
     'use strict';
 
-    const RECEIVER_VERSION_CODE = 21;
+    const RECEIVER_VERSION_CODE = 22;
     const RECEIVER_VERSION_NAME = `v${RECEIVER_VERSION_CODE}`;
     const DIAGNOSTICS_NAMESPACE = 'urn:x-cast:com.gamehomedev.webcastmote.diagnostics';
     const HLS_CONTENT_TYPE = 'application/vnd.apple.mpegurl';
@@ -181,6 +181,11 @@
             this.title = media?.metadata?.title || media?.customData?.title || 'Web video';
             this.mediaTitle.textContent = this.title;
             this.mediaPanel.hidden = false;
+            const w = Number(media?.customData?.width) || 0;
+            const h = Number(media?.customData?.height) || 0;
+            if (w > 0 && h > 0) {
+                setVideoHintDimensions(w, h);
+            }
         }
 
         render(state) {
@@ -242,6 +247,7 @@
             this.hasStartedPlayback = false;
             this.root.classList.remove('playback-active', 'is-idle');
             this.mediaPanel.hidden = true;
+            resetVideoLayout();
         }
 
         updateProgress() {
@@ -299,9 +305,112 @@
         paused: video.paused,
         videoWidth: video.videoWidth,
         videoHeight: video.videoHeight,
+        clientWidth: video.clientWidth,
+        clientHeight: video.clientHeight,
         errorCode: video.error?.code ?? null,
         errorMessage: video.error?.message ?? null,
     });
+
+    let hintWidth = 0;
+    let hintHeight = 0;
+    let lastAppliedLayout = { vw: -1, vh: -1, sw: -1, sh: -1 };
+
+    const applyVideoLayout = (force = false) => {
+        if (!video) return;
+
+        const vw = video.videoWidth || hintWidth || 0;
+        const vh = video.videoHeight || hintHeight || 0;
+        const screenWidth = window.innerWidth || document.documentElement.clientWidth || 1920;
+        const screenHeight = window.innerHeight || document.documentElement.clientHeight || 1080;
+
+        if (!force &&
+            lastAppliedLayout.vw === vw &&
+            lastAppliedLayout.vh === vh &&
+            lastAppliedLayout.sw === screenWidth &&
+            lastAppliedLayout.sh === screenHeight) {
+            return;
+        }
+
+        lastAppliedLayout = { vw, vh, sw: screenWidth, sh: screenHeight };
+
+        if (!vw || !vh) {
+            video.style.position = 'fixed';
+            video.style.left = '0px';
+            video.style.top = '0px';
+            video.style.width = '100%';
+            video.style.height = '100%';
+            video.style.right = 'auto';
+            video.style.bottom = 'auto';
+            video.style.objectFit = 'contain';
+            return;
+        }
+
+        const videoAspect = vw / vh;
+        const screenAspect = screenWidth / screenHeight;
+
+        let targetWidth, targetHeight, targetLeft, targetTop;
+
+        if (videoAspect > screenAspect) {
+            // Video is wider than screen: letterbox top & bottom
+            targetWidth = screenWidth;
+            targetHeight = Math.round(screenWidth / videoAspect);
+            targetLeft = 0;
+            targetTop = Math.round((screenHeight - targetHeight) / 2);
+        } else {
+            // Video is taller than or equal to screen: pillarbox left & right
+            targetHeight = screenHeight;
+            targetWidth = Math.round(screenHeight * videoAspect);
+            targetTop = 0;
+            targetLeft = Math.round((screenWidth - targetWidth) / 2);
+        }
+
+        video.style.position = 'fixed';
+        video.style.left = `${targetLeft}px`;
+        video.style.top = `${targetTop}px`;
+        video.style.width = `${targetWidth}px`;
+        video.style.height = `${targetHeight}px`;
+        video.style.right = 'auto';
+        video.style.bottom = 'auto';
+        video.style.objectFit = 'contain';
+
+        broadcastDiagnostic('VIDEO_LAYOUT_UPDATED', {
+            videoWidth: vw,
+            videoHeight: vh,
+            screenWidth,
+            screenHeight,
+            targetWidth,
+            targetHeight,
+            targetLeft,
+            targetTop,
+            aspectRatio: Number(videoAspect.toFixed(4)),
+        });
+    };
+
+    const setVideoHintDimensions = (w, h) => {
+        const nextW = Number(w) || 0;
+        const nextH = Number(h) || 0;
+        if (nextW > 0 && nextH > 0 && (nextW !== hintWidth || nextH !== hintHeight)) {
+            hintWidth = nextW;
+            hintHeight = nextH;
+            applyVideoLayout();
+        }
+    };
+
+    const resetVideoLayout = () => {
+        hintWidth = 0;
+        hintHeight = 0;
+        lastAppliedLayout = { vw: -1, vh: -1, sw: -1, sh: -1 };
+        if (video) {
+            video.style.position = 'fixed';
+            video.style.left = '0px';
+            video.style.top = '0px';
+            video.style.width = '100%';
+            video.style.height = '100%';
+            video.style.right = 'auto';
+            video.style.bottom = 'auto';
+            video.style.objectFit = 'contain';
+        }
+    };
 
     const startupTimer = setTimeout(() => view.render(ReceiverState.CONNECTING), 320);
     context.addEventListener(cast.framework.system.EventType.READY, () => {
@@ -315,15 +424,30 @@
         if (!video.currentSrc && context.getSenders().length === 0) view.render(ReceiverState.CONNECTING);
     });
 
-    video.addEventListener('timeupdate', () => view.updateProgress());
+    video.addEventListener('timeupdate', () => {
+        view.updateProgress();
+        applyVideoLayout();
+    });
     video.addEventListener('seeking', () => {
         view.revealPlaybackInfo();
         view.updateProgress();
+    });
+    video.addEventListener('resize', () => {
+        applyVideoLayout(true);
+        broadcastDiagnostic('MEDIA_ELEMENT_RESIZE', mediaElementDetails());
+    });
+    ['loadedmetadata', 'loadeddata', 'canplay', 'playing'].forEach((eventName) => {
+        video.addEventListener(eventName, () => {
+            applyVideoLayout();
+        });
     });
     ['loadedmetadata', 'loadeddata', 'canplay', 'playing', 'waiting', 'stalled', 'error'].forEach((eventName) => {
         video.addEventListener(eventName, () => {
             broadcastDiagnostic(`MEDIA_ELEMENT_${eventName.toUpperCase()}`, mediaElementDetails());
         });
+    });
+    window.addEventListener('resize', () => {
+        applyVideoLayout(true);
     });
 
     playerManager.setMessageInterceptor(cast.framework.messages.MessageType.LOAD, (request) => {
@@ -342,6 +466,10 @@
         const codecs = details.codecs || undefined;
         const capabilityType = looksLikeHls && details.container === 'HLS_MPEG2_TS' ? 'video/mp4' : (media.contentType || 'video/mp4');
         const canDisplay = codecs ? context.canDisplayType(capabilityType, codecs, Math.min(width || 1920, 1920), Math.min(height || 1080, 1080), frameRate) : true;
+
+        if (width && height) {
+            setVideoHintDimensions(width, height);
+        }
 
         broadcastDiagnostic('CAPABILITY_CHECK', {
             supported: canDisplay,
@@ -367,16 +495,21 @@
 
     playerManager.addEventListener(cast.framework.events.EventType.PLAYER_LOADING, () => view.render(ReceiverState.LOADING));
     playerManager.addEventListener(cast.framework.events.EventType.PLAYER_LOAD_COMPLETE, () => {
+        applyVideoLayout();
         view.updateProgress();
         broadcastDiagnostic('PLAYER_LOAD_COMPLETE');
     });
-    playerManager.addEventListener(cast.framework.events.EventType.PLAYING, () => view.render(ReceiverState.PLAYING));
+    playerManager.addEventListener(cast.framework.events.EventType.PLAYING, () => {
+        applyVideoLayout();
+        view.render(ReceiverState.PLAYING);
+    });
     playerManager.addEventListener(cast.framework.events.EventType.PAUSE, () => view.render(ReceiverState.PAUSED));
     playerManager.addEventListener(cast.framework.events.EventType.BUFFERING, (event) => {
         view.render(event.isBuffering ? ReceiverState.BUFFERING : (video.paused ? ReceiverState.PAUSED : ReceiverState.PLAYING));
         broadcastDiagnostic('BUFFERING', { isBuffering: event.isBuffering });
     });
     playerManager.addEventListener(cast.framework.events.EventType.MEDIA_FINISHED, () => {
+        resetVideoLayout();
         view.resetMedia();
         view.render(ReceiverState.WAITING);
     });
@@ -407,6 +540,14 @@
         // Remove av01/av1 variants in TS manifests if other H.264 variants exist
         if (/#EXT-X-STREAM-INF:[^\n]*codecs="[^"]*avc1/i.test(text)) {
             text = text.replace(/#EXT-X-STREAM-INF:[^\n]*codecs="[^"]*av0?1[^"]*"[^\n]*\n[^\n#][^\n]*\n?/gi, '');
+        }
+        const resMatch = text.match(/RESOLUTION=(\d+)x(\d+)/i);
+        if (resMatch) {
+            const mw = parseInt(resMatch[1], 10);
+            const mh = parseInt(resMatch[2], 10);
+            if (mw > 0 && mh > 0) {
+                setVideoHintDimensions(mw, mh);
+            }
         }
         // Normalize any non-standard width declarations near 1080p (e.g. 1936x804 -> 1920x804)
         // so hardware restriction checks in any player engine will never reject the variant.
@@ -455,5 +596,17 @@
     options.playbackConfig = playbackConfig;
     options.customNamespaces = { [DIAGNOSTICS_NAMESPACE]: cast.framework.system.MessageType.JSON };
     options.versionCode = RECEIVER_VERSION_CODE;
+
+    context.addCustomMessageListener(DIAGNOSTICS_NAMESPACE, (event) => {
+        const data = event.data;
+        if (data && (data.type === 'SET_VIDEO_LAYOUT' || data.type === 'RESOLUTION_CHANGED')) {
+            const w = Number(data.width) || 0;
+            const h = Number(data.height) || 0;
+            if (w > 0 && h > 0) {
+                setVideoHintDimensions(w, h);
+            }
+        }
+    });
+
     context.start(options);
 })();
