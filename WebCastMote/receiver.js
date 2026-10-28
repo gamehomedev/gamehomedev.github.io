@@ -1,7 +1,7 @@
 (() => {
     'use strict';
 
-    const RECEIVER_VERSION_CODE = 22;
+    const RECEIVER_VERSION_CODE = 23;
     const RECEIVER_VERSION_NAME = `v${RECEIVER_VERSION_CODE}`;
     const DIAGNOSTICS_NAMESPACE = 'urn:x-cast:com.gamehomedev.webcastmote.diagnostics';
     const HLS_CONTENT_TYPE = 'application/vnd.apple.mpegurl';
@@ -297,6 +297,18 @@
         }
     };
 
+    const getScreenDimensions = () => {
+        const width = window.innerWidth || document.documentElement.clientWidth || (window.screen ? window.screen.width : 0) || 1920;
+        const height = window.innerHeight || document.documentElement.clientHeight || (window.screen ? window.screen.height : 0) || 1080;
+        const dpr = window.devicePixelRatio || 1;
+        return { width, height, dpr };
+    };
+
+    const sendDisplayDimensions = () => {
+        const dims = getScreenDimensions();
+        broadcastDiagnostic('SCREEN_SIZE', dims);
+    };
+
     const mediaElementDetails = () => ({
         currentTime: Number.isFinite(video.currentTime) ? video.currentTime : null,
         duration: Number.isFinite(video.duration) ? video.duration : null,
@@ -416,9 +428,11 @@
     context.addEventListener(cast.framework.system.EventType.READY, () => {
         clearTimeout(startupTimer);
         view.render(context.getSenders().length > 0 ? ReceiverState.WAITING : ReceiverState.CONNECTING);
+        sendDisplayDimensions();
     });
     context.addEventListener(cast.framework.system.EventType.SENDER_CONNECTED, () => {
         if (!video.currentSrc) view.render(ReceiverState.WAITING);
+        sendDisplayDimensions();
     });
     context.addEventListener(cast.framework.system.EventType.SENDER_DISCONNECTED, () => {
         if (!video.currentSrc && context.getSenders().length === 0) view.render(ReceiverState.CONNECTING);
@@ -448,6 +462,7 @@
     });
     window.addEventListener('resize', () => {
         applyVideoLayout(true);
+        sendDisplayDimensions();
     });
 
     playerManager.setMessageInterceptor(cast.framework.messages.MessageType.LOAD, (request) => {
@@ -599,7 +614,10 @@
 
     context.addCustomMessageListener(DIAGNOSTICS_NAMESPACE, (event) => {
         const data = event.data;
-        if (data && (data.type === 'SET_VIDEO_LAYOUT' || data.type === 'RESOLUTION_CHANGED')) {
+        if (!data) return;
+        if (data.type === 'GET_SCREEN_SIZE') {
+            sendDisplayDimensions();
+        } else if (data.type === 'SET_VIDEO_LAYOUT' || data.type === 'RESOLUTION_CHANGED') {
             const w = Number(data.width) || 0;
             const h = Number(data.height) || 0;
             if (w > 0 && h > 0) {
